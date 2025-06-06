@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Incident Response Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Cool Slate -->
+    <!-- Application Structure Plan: The application uses a multi-view, single-page architecture to guide the user through a linear simulation. The structure is: 1) Scenario Selection View: A main menu with cards for each incident, providing a clear entry point. 2) Simulation View: The core interactive part, displaying the incident phase, situation, choices, and feedback in a focused layout. A progress bar gives a sense of completion. 3) Summary View: A final screen showing results, a performance chart, and key takeaways. This task-oriented, step-by-step flow was chosen for its clarity and effectiveness in a learning/training context, preventing information overload and making the user journey intuitive. -->
+    <!-- Visualization & Content Choices: Report Info: Incident Scenarios -> Goal: Organize -> Viz: Interactive HTML/CSS Cards -> Interaction: Click to start -> Justification: Clear, distinct entry points. | Report Info: Response Phases -> Goal: Inform/Organize -> Viz: HTML/CSS Progress Tracker -> Interaction: Auto-updates -> Justification: Constant orientation for the user. | Report Info: Decision Points -> Goal: Engage/Interact -> Viz: HTML Buttons -> Interaction: Click to choose -> Justification: Standard, accessible interaction for choices. | Report Info: Feedback -> Goal: Inform/Teach -> Viz: Dynamic Text Block -> Interaction: Appears on choice -> Justification: Immediate learning reinforcement. | Report Info: Final Score -> Goal: Summarize/Compare -> Viz: Chart.js Doughnut Chart -> Interaction: Static display -> Justification: Visually engaging summary of performance. | CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .feedback-card { transition: opacity 0.5s ease-in-out; }
+        .choice-btn { transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out; }
+        .choice-btn:hover { transform: translateY(-2px); }
+        .scenario-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .scenario-card:hover { transform: scale(1.03); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .chart-container { position: relative; width: 100%; max-width: 300px; margin-left: auto; margin-right: auto; height: 300px; max-height: 300px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <!-- View 1: Scenario Selection -->
+        <div id="scenario-selection-view" class="view active">
+            <header class="text-center mb-8 md:mb-12">
+                <h1 class="text-3xl md:text-5xl font-bold text-slate-900">Cybersecurity Incident Response Simulation</h1>
+                <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">Welcome! This tool allows you to walk through realistic cybersecurity incidents. Choose a scenario below to test your incident response skills and knowledge.</p>
+            </header>
+            <main>
+                <div id="scenario-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                    <!-- Scenarios will be injected here by JavaScript -->
+                </div>
+            </main>
+        </div>
+
+        <!-- View 2: Simulation -->
+        <div id="simulation-view" class="view">
+            <header class="mb-6">
+                <h2 id="sim-title" class="text-2xl md:text-3xl font-bold text-slate-900 text-center"></h2>
+                <div class="mt-4 w-full bg-slate-200 rounded-full h-2.5">
+                    <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%; transition: width 0.5s ease-in-out;"></div>
+                </div>
+                <p id="phase-title" class="text-center mt-2 text-sm font-semibold uppercase text-slate-500 tracking-wider"></p>
+            </header>
+            
+            <main class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                <div id="situation-card" class="mb-6">
+                    <h3 class="font-semibold text-xl text-slate-800 mb-2">Situation Update</h3>
+                    <p id="situation-text" class="text-slate-600 leading-relaxed"></p>
+                </div>
+
+                <div id="choices-card">
+                    <h3 class="font-semibold text-xl text-slate-800 mb-4">What is your next action?</h3>
+                    <div id="choices-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Choices will be injected here -->
+                    </div>
+                </div>
+
+                <div id="feedback-card" class="mt-6 p-4 rounded-lg feedback-card opacity-0 hidden">
+                    <h4 id="feedback-title" class="font-bold text-lg mb-2"></h4>
+                    <p id="feedback-text" class="leading-relaxed"></p>
+                </div>
+            </main>
+             <button id="next-phase-btn" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 choice-btn hidden">Continue to Next Phase</button>
+        </div>
+
+        <!-- View 3: Summary -->
+        <div id="summary-view" class="view text-center">
+            <header class="mb-6 md:mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Simulation Complete</h1>
+                <p id="summary-scenario-title" class="mt-2 text-lg text-slate-600"></p>
+            </header>
+            <main class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 text-slate-800">Performance Summary</h3>
+                        <p class="text-slate-600 mb-4">Your response actions have been evaluated. Below is a summary of your performance and key takeaways from this simulation.</p>
+                        <div id="summary-score-text" class="text-2xl font-bold text-blue-600"></div>
+                        <div id="summary-text" class="mt-4 text-left text-slate-600 space-y-2"></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="summary-chart"></canvas>
+                    </div>
+                </div>
+                <div class="mt-8">
+                     <h3 class="text-xl font-semibold mb-4 text-slate-800">Lessons Learned</h3>
+                     <ul id="lessons-learned" class="list-disc list-inside text-left text-slate-600 space-y-2">
+                        <!-- Lessons learned will be injected here -->
+                    </ul>
+                </div>
+            </main>
+            <footer class="mt-8">
+                <button id="restart-btn" class="bg-slate-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-800 choice-btn">Return to Scenarios</button>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        const simData = {
+            scenarios: [
+                {
+                    id: 'phishing',
+                    title: 'Phishing Attack',
+                    description: 'An employee reports a suspicious email, and signs of a potential account compromise are emerging.',
+                    icon: '🎣',
+                    lessons: [
+                        'Always verify the sender of suspicious emails before clicking links or opening attachments.',
+                        'Immediate password resets for compromised accounts are critical to limit attacker access.',
+                        'User education is the first line of defense against phishing attacks.'
+                    ],
+                    phases: [
+                        {
+                            name: 'Identification',
+                            situation: 'An employee from accounting forwards you an email with the subject "Urgent: Invoice Overdue". The employee says they clicked the link but "nothing happened". A few minutes later, the company\'s email security gateway alerts you to suspicious login attempts for this user\'s account from an unrecognized IP address.',
+                            choices: [
+                                { text: 'Immediately lock the user\'s account and force a password reset.', score: 10, feedback: { title: 'Excellent First Step!', text: 'Locking the account is the top priority to prevent unauthorized access. This contains the immediate threat.' }},
+                                { text: 'Email the user and ask them for their password to investigate.', score: -10, feedback: { title: 'Critical Error!', text: 'You should NEVER ask for a user\'s password. This is a major security violation and breaks all trust.' }},
+                                { text: 'Start a company-wide scan for malware.', score: 3, feedback: { title: 'Good, but Not the Priority', text: 'While a good idea eventually, the immediate priority is to secure the compromised account. This action is too broad and slow for the initial response.' }},
+                                { text: 'Ignore the alert; it\'s probably a false positive.', score: -10, feedback: { title: 'Dangerous Inaction!', text: 'Ignoring alerts, especially when correlated with a user report, is negligent. The attacker is likely accessing the account right now.' }}
+                            ]
+                        },
+                        {
+                            name: 'Containment',
+                            situation: 'The user\'s account is now secure. However, email logs show that just before you locked it, the compromised account sent a similar phishing email to 20 other employees. The security gateway has blocked 15, but 5 were delivered.',
+                            choices: [
+                                { text: 'Proactively contact the 5 users, instruct them to delete the email without opening it, and monitor their accounts.', score: 10, feedback: { title: 'Proactive and Effective!', text: 'Directly communicating with the affected users is the fastest way to contain the spread of the attack.' }},
+                                { text: 'Wait to see if any of the other 5 users report the email.', score: -5, feedback: { title: 'Too Passive', text: 'Waiting allows the attacker a window to compromise more accounts. Proactive measures are necessary.' }},
+                                { text: 'Shut down the entire email server to prevent further spread.', score: -8, feedback: { title: 'Overreaction', text: 'Shutting down a critical business system is overly disruptive. The containment can be more targeted.' }},
+                                { text: 'Draft a company-wide email warning everyone about phishing.', score: 5, feedback: { title: 'Good, But Not Enough', text: 'General awareness is important, but it doesn\'t address the immediate threat to the 5 users who received the malicious email.' }}
+                            ]
+                        },
+                        {
+                            name: 'Eradication',
+                            situation: 'You have contacted the 5 users and confirmed they did not click the link. The initial breach seems contained. Now you need to ensure the threat is fully removed from the environment.',
+                            choices: [
+                                { text: 'Implement a new email filter rule to block emails from the attacker\'s domain and similar patterns.', score: 10, feedback: { title: 'Correct!', text: 'Blocking the source prevents this specific attacker from trying again and is a key eradication step.' }},
+                                { text: 'Wipe and re-image the initial victim\'s computer just in case.', score: 7, feedback: { title: 'Thorough, but Possibly Excessive', text: 'While very safe, this might be overkill if there\'s no evidence of malware. The primary threat was account access, but this isn\'t a bad idea if resources permit.' }},
+                                { text: 'Tell everyone the problem is solved and to get back to work.', score: -10, feedback: { title: 'Incomplete Response', text: 'The incident isn\'t over until you\'ve taken steps to prevent its immediate recurrence. The threat actor could still be active.' }},
+                                { text: 'Block the malicious link on the company firewall/proxy.', score: 10, feedback: { title: 'Excellent!', text: 'This is a critical eradication step. It prevents anyone from accidentally visiting the malicious site if they find the email later.' }}
+                            ]
+                        },
+                        {
+                            name: 'Recovery',
+                            situation: 'The threat has been eradicated. All systems are clean, and preventative rules are in place. You need to return operations to normal.',
+                            choices: [
+                                { text: 'Re-enable the user\'s account with their new password and monitor for 24 hours.', score: 10, feedback: { title: 'Perfect Recovery Step', text: 'Restoring access while monitoring for anomalies ensures the recovery is successful and the account remains secure.' }},
+                                { text: 'Keep the user\'s account locked for another week to be safe.', score: -5, feedback: { title: 'Disruptive and Unnecessary', text: 'Prolonged lockout impacts productivity with no added security benefit once the threat is eradicated.' }},
+                                { text: 'Restore the entire email server from last night\'s backup.', score: -8, feedback: { title: 'Massive Overkill', text: 'This would cause significant data loss for a problem that was limited to a single account\'s credentials. The response must be proportional.' }},
+                                { text: 'Inform the user they can resume work and close the ticket.', score: 4, feedback: { title: 'Good, but Missing a Step', text: 'While restoring access is correct, the "monitor" step is a best practice to ensure the recovery is stable.' }}
+                            ]
+                        },
+                        {
+                            name: 'Post-Incident Analysis',
+                            situation: 'The incident is resolved. It\'s time to hold a meeting to discuss what happened and how to prevent it in the future.',
+                            choices: [
+                                { text: 'Document the timeline, identify the root cause (phishing awareness), and schedule mandatory security awareness training for all employees.', score: 10, feedback: { title: 'The Best Possible Outcome!', text: 'Learning from the incident to strengthen defenses is the entire point of post-incident analysis. This improves the company\'s security posture.' }},
+                                { text: 'Blame the user who clicked the link in a company-wide memo.', score: -10, feedback: { title: 'Terrible for Security Culture', text: 'Creating a culture of blame discourages users from reporting future incidents, making the company less secure.' }},
+                                { text: 'Write a brief report and file it away. No need for a meeting.', score: -7, feedback: { title: 'Missed Opportunity', text: 'Without a collaborative review, key lessons are lost, and systemic improvements are unlikely to be made.' }},
+                                { text: 'Conclude that your technical controls are sufficient since the attack was stopped.', score: -5, feedback: { title: 'Complacent Thinking', text: 'The attack was successful initially. Relying only on technical controls and not improving human factors is a recipe for future breaches.' }}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'malware',
+                    title: 'Malware Infection',
+                    description: 'An endpoint detection & response (EDR) system alerts on suspicious process activity originating from a developer\'s workstation.',
+                    icon: '🦠',
+                    lessons: [
+                        'Isolating a potentially infected host from the network is the most critical containment step.',
+                        'Analyzing the malware is essential to understand its capabilities and ensure complete eradication.',
+                        'Maintaining secure, offline backups is the ultimate safety net for recovery.'
+                    ],
+                    phases: [
+                         {
+                            name: 'Identification',
+                            situation: 'Your EDR tool flags a process named "svchost.exe" running from a temporary user directory on a developer\'s laptop, attempting to make connections to a known malicious IP address. This is highly anomalous.',
+                            choices: [
+                                { text: 'Confirm the process is not legitimate and validate the EDR alert against threat intelligence feeds.', score: 10, feedback: { title: 'Methodical and Correct', text: 'Validating the alert is the proper first step to confirm you\'re dealing with a real threat before taking disruptive action.' }},
+                                { text: 'Immediately re-image the laptop without investigation.', score: 2, feedback: { title: 'Too Hasty', text: 'While this neutralizes the threat, you lose all forensic evidence. You won\'t know what the malware did or if it spread.' }},
+                                { text: 'Call the developer and ask them to turn their computer off.', score: -5, feedback: { title: 'Risky Move', text: 'Modern malware can have anti-shutdown mechanisms or destructive triggers. You could lose valuable forensic data or cause more damage.' }},
+                                { text: 'Assume it is a false positive since developers often use unusual tools.', score: -10, feedback: { title: 'Negligent', text: 'An EDR alert for a known malicious IP should never be dismissed without thorough investigation. The system is likely compromised.' }}
+                            ]
+                        },
+                        {
+                            name: 'Containment',
+                            situation: 'You\'ve confirmed it is active malware. The process is a known remote access trojan (RAT). What is your most urgent containment action?',
+                            choices: [
+                                { text: 'Use the EDR tool to isolate the host from the network immediately.', score: 10, feedback: { title: 'Perfect!', text: 'Network isolation is the single most effective containment step. It prevents the malware from spreading or communicating with its C2 server.' }},
+                                { text: 'Run a full antivirus scan on the machine.', score: 3, feedback: { title: 'Too Slow', text: 'A scan takes time, during which the attacker has full access and the malware can spread. Isolation must come first.' }},
+                                { text: 'Disconnect the office\'s main internet connection.', score: -7, feedback: { title: 'Major Overreaction', text: 'This causes a company-wide outage for an issue on a single host. The response must be targeted and proportional.' }},
+                                { text: 'Start blocking the malicious IP on the firewall.', score: 7, feedback: { title: 'Good, But Incomplete', text: 'This is a valuable step, but it doesn\'t stop the malware from spreading internally on the local network. Host isolation is more comprehensive.' }}
+                            ]
+                        },
+                        {
+                             name: 'Eradication',
+                            situation: 'The host is isolated. You\'ve taken a forensic snapshot for analysis. Now you must remove the threat.',
+                            choices: [
+                                { text: 'Wipe the machine and re-image it from a known-good, golden image.', score: 10, feedback: { title: 'The Gold Standard', text: 'Nuking it from orbit is the only way to be 100% sure the malware is gone. This is the correct procedure for confirmed malware infections.' }},
+                                { text: 'Try to manually delete the malicious files found by the EDR.', score: -5, feedback: { title: 'Risky and Unreliable', text: 'Malware is persistent. Manually deleting files often leaves behind hidden components, registry keys, or rootkits. You cannot be sure it\'s gone.' }},
+                                { text: 'Trust the EDR tool\'s "quarantine" feature and put the host back on the network.', score: -8, feedback: { title: 'Too Trusting', text: 'Quarantine features can fail, especially with sophisticated malware. Re-imaging is the only guaranteed eradication method.' }},
+                                { text: 'Run a search across the network for the same malicious file hash to find other infections.', score: 8, feedback: { title: 'Excellent Threat Hunting!', text: 'This is a crucial part of eradication - ensuring the malware hasn\'t already spread. This should be done in parallel with re-imaging the first host.' }}
+                            ]
+                        },
+                        {
+                             name: 'Recovery',
+                            situation: 'The developer\'s laptop has been re-imaged and is clean. You\'ve scanned the network and found no other instances of the malware. How do you proceed with recovery?',
+                            choices: [
+                                { text: 'Restore the developer\'s work files from the last known-good backup taken before the infection.', score: 10, feedback: { title: 'Correct Procedure', text: 'Restoring user data from a clean backup is the standard and safest recovery method.' }},
+                                { text: 'Connect the old, infected hard drive and copy the developer\'s files over.', score: -10, feedback: { title: 'Guaranteed Re-infection!', text: 'This would immediately re-infect the clean machine. Infected media should never be connected to a clean system.' }},
+                                { text: 'Give the developer the clean laptop and tell them their old files are gone.', score: 1, feedback: { title: 'Technically Secure, But Poor Practice', text: 'This results in data loss and impacts productivity. A proper response includes data restoration.' }},
+                                { text: 'Install enhanced monitoring software on the new laptop before returning it.', score: 7, feedback: { title: 'A Wise Precaution', text: 'While not strictly a recovery step, enhancing monitoring on a previously compromised asset is a smart lesson learned.' }}
+                            ]
+                        },
+                        {
+                             name: 'Post-Incident Analysis',
+                            situation: 'The developer is back to work on their clean machine. The incident is closed. What is the most important lesson to implement?',
+                            choices: [
+                                { text: 'Analyze the root cause (e.g., developer downloaded an untrusted tool) and strengthen policies around software installation.', score: 10, feedback: { title: 'Strategic Improvement', text: 'Addressing the root cause is the key to preventing future incidents. This is the most valuable outcome.' }},
+                                { text: 'Conclude that the EDR system worked perfectly and no changes are needed.', score: -5, feedback: { title: 'Complacent', text: 'The EDR detected the problem, but it didn\'t prevent it. Prevention is always better than detection. There is always room for improvement.' }},
+                                { text: 'Buy a different EDR tool.', score: -3, feedback: { title: 'Missing the Point', text: 'The tool worked. The issue was a policy or human factor that allowed the malware to be executed in the first place. Changing tools won\'t fix the root cause.' }},
+                                { text: 'Create a report and emphasize how quickly you solved it.', score: 2, feedback: { title: 'Good for you, but...', text: 'While a fast response is good, the goal of the analysis is to find systemic improvements, not just to document a personal success.' }}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        let currentScenario = null;
+        let currentPhaseIndex = 0;
+        let score = 0;
+        let maxScore = 0;
+        let summaryChart = null;
+
+        const views = {
+            selection: document.getElementById('scenario-selection-view'),
+            simulation: document.getElementById('simulation-view'),
+            summary: document.getElementById('summary-view')
+        };
+
+        function showView(viewName) {
+            Object.values(views).forEach(view => view.classList.remove('active'));
+            views[viewName].classList.add('active');
+        }
+        
+        function populateScenarioList() {
+            const listContainer = document.getElementById('scenario-list');
+            listContainer.innerHTML = '';
+            simData.scenarios.forEach(scenario => {
+                const card = document.createElement('div');
+                card.className = 'scenario-card bg-white p-6 rounded-xl shadow-md cursor-pointer border border-transparent hover:border-blue-500';
+                card.innerHTML = `
+                    <div class="text-4xl mb-4">${scenario.icon}</div>
+                    <h3 class="text-xl font-bold text-slate-900">${scenario.title}</h3>
+                    <p class="text-slate-600 mt-2">${scenario.description}</p>
+                `;
+                card.onclick = () => startSimulation(scenario.id);
+                listContainer.appendChild(card);
+            });
+        }
+
+        function startSimulation(scenarioId) {
+            currentScenario = simData.scenarios.find(s => s.id === scenarioId);
+            currentPhaseIndex = 0;
+            score = 0;
+            maxScore = currentScenario.phases.reduce((total, phase) => {
+                const phaseMax = Math.max(...phase.choices.map(c => c.score));
+                return total + (phaseMax > 0 ? phaseMax : 0);
+            }, 0);
+
+            document.getElementById('sim-title').textContent = currentScenario.title;
+            showView('simulation');
+            renderPhase();
+        }
+
+        function renderPhase() {
+            const phase = currentScenario.phases[currentPhaseIndex];
+            
+            const progress = ((currentPhaseIndex + 1) / currentScenario.phases.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('phase-title').textContent = `Phase ${currentPhaseIndex + 1} of ${currentScenario.phases.length}: ${phase.name}`;
+
+            document.getElementById('situation-text').textContent = phase.situation;
+            
+            const choicesContainer = document.getElementById('choices-container');
+            choicesContainer.innerHTML = '';
+            phase.choices.forEach((choice, index) => {
+                const button = document.createElement('button');
+                button.className = 'choice-btn w-full text-left bg-slate-100 text-slate-700 font-semibold py-3 px-4 rounded-lg hover:bg-slate-200';
+                button.textContent = choice.text;
+                button.onclick = () => handleChoice(index);
+                choicesContainer.appendChild(button);
+            });
+
+            const feedbackCard = document.getElementById('feedback-card');
+            feedbackCard.classList.add('opacity-0', 'hidden');
+            document.getElementById('next-phase-btn').classList.add('hidden');
+        }
+
+        function handleChoice(choiceIndex) {
+            const phase = currentScenario.phases[currentPhaseIndex];
+            const choice = phase.choices[choiceIndex];
+
+            score += choice.score;
+            
+            const feedbackCard = document.getElementById('feedback-card');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackText = document.getElementById('feedback-text');
+
+            feedbackTitle.textContent = choice.feedback.title;
+            feedbackText.textContent = choice.feedback.text;
+
+            feedbackCard.classList.remove('hidden');
+            setTimeout(() => feedbackCard.classList.remove('opacity-0'), 10);
+            
+            if (choice.score > 5) {
+                feedbackCard.className = 'feedback-card mt-6 p-4 rounded-lg bg-green-100 text-green-800 opacity-100';
+                feedbackTitle.className = 'font-bold text-lg mb-2 text-green-900';
+            } else if (choice.score <= 0) {
+                 feedbackCard.className = 'feedback-card mt-6 p-4 rounded-lg bg-red-100 text-red-800 opacity-100';
+                 feedbackTitle.className = 'font-bold text-lg mb-2 text-red-900';
+            } else {
+                 feedbackCard.className = 'feedback-card mt-6 p-4 rounded-lg bg-yellow-100 text-yellow-800 opacity-100';
+                 feedbackTitle.className = 'font-bold text-lg mb-2 text-yellow-900';
+            }
+            
+            document.querySelectorAll('#choices-container button').forEach(btn => btn.disabled = true);
+            document.getElementById('next-phase-btn').classList.remove('hidden');
+            document.getElementById('next-phase-btn').onclick = () => advancePhase();
+        }
+
+        function advancePhase() {
+            currentPhaseIndex++;
+            if (currentPhaseIndex < currentScenario.phases.length) {
+                renderPhase();
+            } else {
+                showSummary();
+            }
+        }
+
+        function showSummary() {
+            document.getElementById('summary-scenario-title').textContent = `Scenario: ${currentScenario.title}`;
+            
+            const performancePercentage = maxScore > 0 ? Math.max(0, Math.round((score / maxScore) * 100)) : 0;
+            document.getElementById('summary-score-text').textContent = `Your Final Score: ${performancePercentage}%`;
+            
+            let summaryMessage = '';
+            if (performancePercentage >= 80) {
+                summaryMessage = 'Excellent! Your decision-making was effective and aligned with cybersecurity best practices.';
+            } else if (performancePercentage >= 50) {
+                summaryMessage = 'Good job. You made some solid choices, but there are areas for improvement in your response strategy.';
+            } else {
+                summaryMessage = 'There are significant opportunities for learning. Some of your choices were counter-productive and could have exacerbated the incident.';
+            }
+            document.getElementById('summary-text').textContent = summaryMessage;
+
+            const lessonsList = document.getElementById('lessons-learned');
+            lessonsList.innerHTML = '';
+            currentScenario.lessons.forEach(lesson => {
+                const li = document.createElement('li');
+                li.textContent = lesson;
+                lessonsList.appendChild(li);
+            });
+            
+            const ctx = document.getElementById('summary-chart').getContext('2d');
+            if(summaryChart) {
+                summaryChart.destroy();
+            }
+            summaryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Effective Score', 'Potential Improvement'],
+                    datasets: [{
+                        data: [performancePercentage, 100 - performancePercentage],
+                        backgroundColor: ['#2563eb', '#e5e7eb'],
+                        borderColor: ['#ffffff', '#ffffff'],
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+
+            showView('summary');
+        }
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            showView('selection');
+            populateScenarioList();
+        });
+        
+        window.onload = () => {
+            populateScenarioList();
+            showView('selection');
+        };
+
+    </script>
+</body>
+</html>
